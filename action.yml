@@ -82,7 +82,7 @@ runs:
       if: steps.should-cache.outputs.do-cache == 1
       uses: "runs-on/cache@v4"
       env:
-          RUNS_ON_S3_BUCKET_CACHE: runs-on-cache
+          RUNS_ON_S3_BUCKET_CACHE: cc-prenv-github-actions-cache
       with:
         path: "${{ steps.composer.outputs.cache-dir }}"
         key: "${{ steps.cache-key.outputs.key }}"
