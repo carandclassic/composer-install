@@ -5,10 +5,10 @@
 </p>
 
 <p align="center">
-    <a href="https://github.com/ramsey/composer-install"><img src="http://img.shields.io/badge/source-ramsey/composer--install-blue.svg?style=flat-square" alt="Source Code"></a>
+    <a href="https://github.com/ramsey/composer-install"><img src="https://img.shields.io/badge/source-ramsey/composer--install-blue.svg?style=flat-square" alt="Source Code"></a>
     <a href="https://github.com/ramsey/composer-install/blob/main/LICENSE"><img src="https://img.shields.io/badge/license-MIT-darkcyan.svg?style=flat-square" alt="Read License"></a>
-    <a href="https://github.com/ramsey/composer-install/actions/workflows/continuous-integration.yml"><img src="https://img.shields.io/github/actions/workflow/status/ramsey/composer-install/continuous-integration.yml?branch=v2&logo=github&style=flat-square" alt="Build Status"></a>
-    <a href="https://codecov.io/gh/ramsey/composer-install"><img src="https://img.shields.io/codecov/c/gh/ramsey/composer-install?label=codecov&logo=codecov&style=flat-square" alt="Codecov Code Coverage"></a>
+    <a href="https://github.com/ramsey/composer-install/actions/workflows/continuous-integration.yml"><img src="https://img.shields.io/github/actions/workflow/status/ramsey/composer-install/continuous-integration.yml?branch=v3&logo=github&style=flat-square" alt="Build Status"></a>
+    <a href="https://codecov.io/gh/ramsey/composer-install"><img src="https://img.shields.io/codecov/c/gh/ramsey/composer-install/v3?label=codecov&logo=codecov&style=flat-square" alt="Codecov Code Coverage"></a>
 </p>
 
 ## About
@@ -42,8 +42,8 @@ the [Setup PHP](https://github.com/shivammathur/setup-php) action as a step.
 - uses: "ramsey/composer-install@v3"
 ```
 
-:bulb: There is no need to set up a separate caching step since ramsey/composer-install
-handles this for you.
+> [!TIP]
+> There is no need to set up a separate caching step since ramsey/composer-install handles this for you.
 
 ### Input Parameters
 
@@ -85,6 +85,25 @@ For example:
     composer-options: "--ignore-platform-reqs --optimize-autoloader"
 ```
 
+#### composer-filename
+
+If you have a custom Composer filename, you may use `composer-filename` to change
+the filename Composer uses. For example, your Composer file could be
+`composer-gh-actions.json` or `composer-staging.json` instead of the default
+`composer.json`.
+
+You should specify the filename without the extension, since it will determine
+both the JSON and lock filenames to use. The default value is `"composer"`,
+which will use `composer.json` and `composer.lock` as the filenames.
+
+For example:
+
+```yaml
+- uses: "ramsey/composer-install@v3"
+  with:
+    composer-filename: "composer-gh-actions"
+```
+
 #### working-directory
 
 The `working-directory` input parameter allows you to specify a different
@@ -120,6 +139,8 @@ For example:
 
 #### ignore-cache
 
+Normally, ramsey/composer-install preserves composer's cache between jobs
+so that subsequent identically-invoked jobs execute faster.
 If you have jobs for which you wish to completely ignore the caching step, you
 may use the `ignore-cache` input parameter. When present, ramsey/composer-install
 will neither read from nor write to the cache.
@@ -172,18 +193,70 @@ even more specific, you can specify a suffix to be added to the cache key via th
     custom-cache-suffix: $(/bin/date -u --date='last Mon' "+%F")
 ```
 
-:warning: Note: specifying a `custom-cache-key` will take precedence over the `custom-cache-suffix`.
+> [!WARNING]
+> Specifying a `custom-cache-key` will take precedence over the `custom-cache-suffix`.
+
+
+#### require-lock-file
+
+By default, if no composer.lock file is found in the working directory
+ramsey/composer-install will invoke `composer update` regardless of the value of
+`dependency-versions`.
+
+If this is set to a value of `true`, ramsey/composer-install will fail in its
+execution if it does not find a lock file.
+
 
 ### Fork and private repositories
 
-Sometimes it's needed to use the `repositories` key in your `composer.json` to pull in forks, PRs with patches or private repositories. In this case, your GitHub Action may start failing with a `Could not authenticate against github.com` error message. To solve this, you need to add a GitHub Personal Access token, and this bit to your Action configuration:
+Sometimes it's necessary to use the `repositories` key in your `composer.json` to
+pull in forks, PRs with patches, or private repositories. In this case, your
+GitHub Action may start failing with a `Could not authenticate against github.com`
+error message. To solve this, you need to use an authorized token. Luckily,
+[GHA provides you with one automatically at each run][]; all you need to do is
+set the `repository-projects` permission to `read`:
+
+```yaml
+job:
+  permissions:
+    repository-projects: read
+  steps:
+  # ...
+  - uses: ramsey/composer-install@v3
+    env:
+      COMPOSER_AUTH: '{"github-oauth": {"github.com": "${{ secrets.GITHUB_TOKEN }}"}}'
+```
+
+In the example above, `COMPOSER_AUTH` is the [default environment variable that Composer supports][]
+to dynamically configure its authentication. If you have other authentication tokens
+in use, and you don't want to conflict with those, you can record the token
+programmatically, as in the example below:
+
+```yaml
+job:
+  permissions:
+    repository-projects: read
+  steps:
+  # ...
+  - run: composer config -- github-oauth.github.com ${{ secrets.GITHUB_TOKEN }}
+    name: Register GitHub token for Composer
+  - uses: ramsey/composer-install@v3
+```
+
+Note that this approach is only valid for public forks; if you need to access
+private repositories, you must create a secret in the repository that runs the
+action, and use it to store a Personal Access Token with a `read:project` scope
+from a user that is allowed to read those repositories, and use in place of
+`secrets.GITHUB_TOKEN`. In the following example, the PAT is stored in a secret
+called `COMPOSER_PAT`:
+
 ```yaml
 env:
-   COMPOSER_AUTH: '{"github-oauth": {"github.com": "${{ secrets.COMPOSER_AUTH }}"}}'
+  COMPOSER_AUTH: '{"github-oauth": {"github.com": "${{ secrets.COMPOSER_PAT }}"}}'
 ```
-In this example, `COMPOSER_AUTH` is the name of the secret that you'll need to create. To access public repositories, the `public_repo` scope is sufficient, while for private repositories (that you can access), `read:project` will be needed.
 
-For more information on how to do that on your repository, see [Creating a personal access token](https://docs.github.com/en/authentication/keeping-your-account-and-data-secure/creating-a-personal-access-token) and [Creating encrypted secrets for a repository](https://docs.github.com/en/actions/security-guides/encrypted-secrets#creating-encrypted-secrets-for-a-repository) on GitHub documentation.
+For more information on how to do that on your repository, see [Creating a personal access token][]
+and [Creating encrypted secrets for a repository][] on GitHub documentation.
 
 ### Matrix Example
 
@@ -230,3 +303,9 @@ yourself with [CONTRIBUTING.md](CONTRIBUTING.md).
 The ramsey/composer-install GitHub Action is copyright © [Ben Ramsey](https://benramsey.com)
 and licensed for use under the terms of the MIT License (MIT). Please see
 [LICENSE](LICENSE) for more information.
+
+
+[GHA provides you with one automatically at each run]: https://docs.github.com/en/actions/security-for-github-actions/security-guides/automatic-token-authentication
+[default environment variable that Composer supports]: https://getcomposer.org/doc/articles/authentication-for-private-packages.md#authentication-using-the-composer-auth-environment-variable
+[Creating a personal access token]: https://docs.github.com/en/authentication/keeping-your-account-and-data-secure/creating-a-personal-access-token
+[Creating encrypted secrets for a repository]: https://docs.github.com/en/actions/security-guides/encrypted-secrets#creating-encrypted-secrets-for-a-repository

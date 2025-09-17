@@ -1,12 +1,13 @@
 #!/usr/bin/env bash
 
-dependency_versions="${1:-locked}"
-additional_composer_options="${2}"
-working_directory="${3}"
+dependency_versions="${1:-}"
+additional_composer_options="${2:-}"
+working_directory="${3:-}"
 php_path="${4:-$(which php)}"
 composer_path="${5:-$(which composer)}"
-composer_lock="${6}"
-require_lock_file="${7}"
+composer_lock="${6:-}"
+require_lock_file="${7:-}"
+composer_filename="${8:-}"
 
 composer_command="update"
 composer_options=("--no-interaction" "--no-progress" "--ansi")
@@ -33,6 +34,14 @@ if [ -n "${working_directory}" ]; then
     composer_options+=("--working-dir" "${working_directory}")
 fi
 
+if [ -n "${composer_filename}" ]; then
+    COMPOSER="${composer_filename}.json"
+elif [ -z "${COMPOSER:-}" ]; then
+    COMPOSER="composer.json"
+fi
+export COMPOSER
+
 full_command="${php_path} ${composer_path} ${composer_command} ${composer_options[*]}"
 echo "::debug::Using the following Composer command: '${full_command}'"
+echo "::debug::The COMPOSER environment variable is '${COMPOSER}'"
 $full_command
