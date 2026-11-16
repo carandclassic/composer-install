@@ -4,6 +4,8 @@ name: "build"
 
 on: ["pull_request", "push", "workflow_dispatch"]
 
+permissions: {}
+
 # Cancels all previous workflow runs for the same branch that have not yet completed.
 concurrency:
   # The concurrency group contains the workflow name and the branch name.
@@ -14,9 +16,13 @@ jobs:
   composer:
     name: "Check Composer"
     runs-on: "ubuntu-latest"
+    permissions:
+      contents: "read"
     steps:
       - name: "Checkout repository"
         uses: "actions/checkout@11d5960a326750d5838078e36cf38b85af677262" # v4.4.0
+        with:
+          persist-credentials: false
       - name: "Set up PHP"
         uses: "shivammathur/setup-php@eb7c497e18156a6bbabfef1d3a82760b9eda3962" # 2.40.0
         with:
@@ -29,11 +35,14 @@ jobs:
   test:
     name: "Bats tests"
     runs-on: "ubuntu-latest"
+    permissions:
+      contents: "read"
     steps:
       - name: "Checkout repository"
         uses: "actions/checkout@11d5960a326750d5838078e36cf38b85af677262" # v4.4.0
         with:
           submodules: "recursive"
+          persist-credentials: false
       - name: "Set up PHP"
         uses: "shivammathur/setup-php@eb7c497e18156a6bbabfef1d3a82760b9eda3962" # 2.40.0
         with:
@@ -49,16 +58,20 @@ jobs:
     if: github.repository == 'ramsey/composer-install'
     name: "Code coverage"
     runs-on: "ubuntu-latest"
+    permissions:
+      contents: "read"
     steps:
       - name: "Checkout repository"
         uses: "actions/checkout@11d5960a326750d5838078e36cf38b85af677262" # v4.4.0
         with:
           submodules: "recursive"
+          persist-credentials: false
       - name: "Set up Ruby"
         uses: "ruby/setup-ruby@b3aaceaef7e0ee231b499e7b5f49c03fc1d32199" # v1.338.0
         with:
           ruby-version: "3.2"
       - name: "Install Ruby dependencies"
+        # zizmor: ignore[adhoc-packages] coverage job only runs on upstream ramsey/composer-install
         run: |
           gem install bashcov
           gem install simplecov-cobertura
@@ -77,9 +90,13 @@ jobs:
   static-analysis:
     name: "Static analysis"
     runs-on: "ubuntu-latest"
+    permissions:
+      contents: "read"
     steps:
       - name: "Checkout repository"
         uses: "actions/checkout@11d5960a326750d5838078e36cf38b85af677262" # v4.4.0
+        with:
+          persist-credentials: false
       - name: "Run shellcheck"
         run: "shellcheck bin/*.sh tests/*.bats"
 
@@ -87,6 +104,8 @@ jobs:
     needs: test
     name: "Run action"
     runs-on: "${{ matrix.operating-system }}"
+    permissions:
+      contents: "read"
     strategy:
       matrix:
         operating-system:
@@ -104,6 +123,8 @@ jobs:
     steps:
       - name: "Checkout repository"
         uses: "actions/checkout@11d5960a326750d5838078e36cf38b85af677262" # v4.4.0
+        with:
+          persist-credentials: false
       - name: "Set up PHP"
         uses: "shivammathur/setup-php@eb7c497e18156a6bbabfef1d3a82760b9eda3962" # 2.40.0
         with:
@@ -113,7 +134,7 @@ jobs:
           fail-fast: true
 
       - name: "Test: plain install"
-        uses: ./
+        uses: $/
         with:
           working-directory: "${{ matrix.working-directory }}"
           dependency-versions: "${{ matrix.dependency-versions }}"
@@ -124,7 +145,7 @@ jobs:
           composer clear-cache
 
       - name: "Test: ignore platform reqs"
-        uses: ./
+        uses: $/
         with:
           working-directory: "${{ matrix.working-directory }}"
           dependency-versions: "${{ matrix.dependency-versions }}"
@@ -136,7 +157,7 @@ jobs:
           composer clear-cache
 
       - name: "Test: ignore platform reqs, ignore cache"
-        uses: ./
+        uses: $/
         with:
           working-directory: "${{ matrix.working-directory }}"
           dependency-versions: "${{ matrix.dependency-versions }}"
@@ -149,7 +170,7 @@ jobs:
           composer clear-cache
 
       - name: "Test: ignore platform reqs, custom cache key"
-        uses: ./
+        uses: $/
         with:
           working-directory: "${{ matrix.working-directory }}"
           dependency-versions: "${{ matrix.dependency-versions }}"
@@ -162,7 +183,7 @@ jobs:
           composer clear-cache
 
       - name: "Test: ignore platform reqs, ignore cache, custom cache key"
-        uses: ./
+        uses: $/
         with:
           working-directory: "${{ matrix.working-directory }}"
           dependency-versions: "${{ matrix.dependency-versions }}"
@@ -176,7 +197,7 @@ jobs:
           composer clear-cache
 
       - name: "Test: ignore cache"
-        uses: ./
+        uses: $/
         with:
           working-directory: "${{ matrix.working-directory }}"
           dependency-versions: "${{ matrix.dependency-versions }}"
@@ -188,7 +209,7 @@ jobs:
           composer clear-cache
 
       - name: "Test: ignore cache, custom cache key"
-        uses: ./
+        uses: $/
         with:
           working-directory: "${{ matrix.working-directory }}"
           dependency-versions: "${{ matrix.dependency-versions }}"
@@ -201,7 +222,7 @@ jobs:
           composer clear-cache
 
       - name: "Test: custom cache key"
-        uses: ./
+        uses: $/
         with:
           working-directory: "${{ matrix.working-directory }}"
           dependency-versions: "${{ matrix.dependency-versions }}"
@@ -213,7 +234,7 @@ jobs:
           composer clear-cache
 
       - name: "Test: custom cache suffix"
-        uses: ./
+        uses: $/
         with:
           working-directory: "${{ matrix.working-directory }}"
           dependency-versions: "${{ matrix.dependency-versions }}"
@@ -223,6 +244,8 @@ jobs:
     needs: test
     name: "Run unclean"
     runs-on: "${{ matrix.operating-system }}"
+    permissions:
+      contents: "read"
     strategy:
       matrix:
         operating-system:
@@ -231,6 +254,8 @@ jobs:
     steps:
       - name: "Checkout repository"
         uses: "actions/checkout@11d5960a326750d5838078e36cf38b85af677262" # v4.4.0
+        with:
+          persist-credentials: false
       - name: "Set up PHP"
         uses: "shivammathur/setup-php@eb7c497e18156a6bbabfef1d3a82760b9eda3962" # 2.40.0
         with:
@@ -240,18 +265,18 @@ jobs:
           fail-fast: true
 
       - name: "Test: plain install"
-        uses: ./
+        uses: $/
         with:
           working-directory: 'tests/fixtures/with-lock-file'
 
       - name: "Test: switch to lowest dependencies"
-        uses: ./
+        uses: $/
         with:
           working-directory: 'tests/fixtures/with-lock-file'
           dependency-versions: 'lowest'
 
       - name: "Test: switch to highest dependencies"
-        uses: ./
+        uses: $/
         with:
           working-directory: 'tests/fixtures/with-lock-file'
           dependency-versions: 'highest'
