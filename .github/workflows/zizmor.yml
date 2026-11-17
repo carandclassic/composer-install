@@ -1,0 +1,32 @@
+name: Zizmor
+
+on:
+  push:
+    branches:
+      - "v3"
+  pull_request: {}
+
+permissions: {}
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+jobs:
+  zizmor:
+    name: Run Zizmor 🌈
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      # .gitattributes export-ignores .github, so the repo tarball zizmor fetches remotely has no workflows
+      - name: Checkout repository
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+        with:
+          persist-credentials: false
+
+      - name: Run zizmor 🌈
+        uses: zizmorcore/zizmor-action@45d7276c9ca790aabd705e31ca99c6185c3e76dd # v0.8.1
+        with:
+          persona: auditor
+          advanced-security: false

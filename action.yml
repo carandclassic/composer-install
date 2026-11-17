@@ -58,7 +58,9 @@ runs:
     - name: "Determine whether we should ignore caching"
       id: "should-cache"
       shell: "bash"
-      run: '${GITHUB_ACTION_PATH}/bin/should_cache.sh "${{ inputs.ignore-cache }}"'
+      run: '${GITHUB_ACTION_PATH}/bin/should_cache.sh "${INPUTS_IGNORE_CACHE}"'
+      env:
+        INPUTS_IGNORE_CACHE: ${{ inputs.ignore-cache }}
 
     - name: "Determine Composer paths"
       id: "composer"
@@ -66,24 +68,36 @@ runs:
       run: |
         ${GITHUB_ACTION_PATH}/bin/composer_paths.sh \
           "" \
-          "${{ inputs.working-directory }}" \
-          "${{ steps.php.outputs.path }}" \
-          "${{ inputs.composer-filename }}"
+          "${INPUTS_WORKING_DIRECTORY}" \
+          "${STEPS_PHP_OUTPUTS_PATH}" \
+          "${INPUTS_COMPOSER_FILENAME}"
+      env:
+        INPUTS_WORKING_DIRECTORY: ${{ inputs.working-directory }}
+        STEPS_PHP_OUTPUTS_PATH: ${{ steps.php.outputs.path }}
+        INPUTS_COMPOSER_FILENAME: ${{ inputs.composer-filename }}
 
     - name: "Determine cache key"
       id: "cache-key"
       if: steps.should-cache.outputs.do-cache == 1
       shell: "bash"
+      # zizmor: ignore[template-injection] custom-cache-suffix is shell-evaluated by design, see README
       run: |
         ${GITHUB_ACTION_PATH}/bin/cache_key.sh \
-          "${{ runner.os }}" \
-          "${{ steps.php.outputs.version }}" \
-          "${{ inputs.dependency-versions }}" \
-          "${{ inputs.composer-options }}" \
-          "${{ hashFiles('**/${{ inputs.composer-filename }}.json', '**/${{ inputs.composer-filename }}.lock') }}" \
-          "${{ inputs.custom-cache-key }}" \
+          "${RUNNER_OS}" \
+          "${STEPS_PHP_OUTPUTS_VERSION}" \
+          "${INPUTS_DEPENDENCY_VERSIONS}" \
+          "${INPUTS_COMPOSER_OPTIONS}" \
+          "${FILES_HASH}" \
+          "${INPUTS_CUSTOM_CACHE_KEY}" \
           "${{ inputs.custom-cache-suffix }}" \
-          "${{ inputs.working-directory }}"
+          "${INPUTS_WORKING_DIRECTORY}"
+      env:
+        STEPS_PHP_OUTPUTS_VERSION: ${{ steps.php.outputs.version }}
+        INPUTS_DEPENDENCY_VERSIONS: ${{ inputs.dependency-versions }}
+        INPUTS_COMPOSER_OPTIONS: ${{ inputs.composer-options }}
+        FILES_HASH: ${{ hashFiles('**/${{ inputs.composer-filename }}.json', '**/${{ inputs.composer-filename }}.lock') }}
+        INPUTS_CUSTOM_CACHE_KEY: ${{ inputs.custom-cache-key }}
+        INPUTS_WORKING_DIRECTORY: ${{ inputs.working-directory }}
 
     - name: "Cache Composer dependencies"
       if: steps.should-cache.outputs.do-cache == 1
@@ -100,11 +114,20 @@ runs:
       shell: "bash"
       run: |
         ${GITHUB_ACTION_PATH}/bin/composer_install.sh \
-          "${{ inputs.dependency-versions }}" \
-          "${{ inputs.composer-options }}" \
-          "${{ inputs.working-directory }}" \
-          "${{ steps.php.outputs.path }}" \
-          "${{ steps.composer.outputs.composer_command }}" \
-          "${{ steps.composer.outputs.lock }}" \
-          "${{ inputs.require-lock-file }}" \
-          "${{ inputs.composer-filename }}" \
+          "${INPUTS_DEPENDENCY_VERSIONS}" \
+          "${INPUTS_COMPOSER_OPTIONS}" \
+          "${INPUTS_WORKING_DIRECTORY}" \
+          "${STEPS_PHP_OUTPUTS_PATH}" \
+          "${STEPS_COMPOSER_OUTPUTS_COMPOSER_COMMAND}" \
+          "${STEPS_COMPOSER_OUTPUTS_LOCK}" \
+          "${INPUTS_REQUIRE_LOCK_FILE}" \
+          "${INPUTS_COMPOSER_FILENAME}" \
+      env:
+        INPUTS_DEPENDENCY_VERSIONS: ${{ inputs.dependency-versions }}
+        INPUTS_COMPOSER_OPTIONS: ${{ inputs.composer-options }}
+        INPUTS_WORKING_DIRECTORY: ${{ inputs.working-directory }}
+        STEPS_PHP_OUTPUTS_PATH: ${{ steps.php.outputs.path }}
+        STEPS_COMPOSER_OUTPUTS_COMPOSER_COMMAND: ${{ steps.composer.outputs.composer_command }}
+        STEPS_COMPOSER_OUTPUTS_LOCK: ${{ steps.composer.outputs.lock }}
+        INPUTS_REQUIRE_LOCK_FILE: ${{ inputs.require-lock-file }}
+        INPUTS_COMPOSER_FILENAME: ${{ inputs.composer-filename }}
